@@ -486,7 +486,7 @@ MEME_LIST_CMDS = ("/memes", "/梗图", "/图库")
 
 
 def help_text():
-    return P("help", _HELP_DEFAULT)
+    return debrand(_help_with_auto(P("help", _HELP_DEFAULT)))
 
 
 _HELP_DEFAULT = (
@@ -540,6 +540,50 @@ _HELP_DEFAULT = (
         "权限：设定管理群内所有人都能用（但只改本群）；发言控制、好友审批、"
         "电脑操控、自我迭代只有爸爸（主人）能用。群友私聊我只会陪聊，改不了设定。"
     )
+
+
+# ---- 指令注册表：新增命令只在这里登记一次，/help 会自动补进还没写进上面文案的指令 ----
+# help_text() 会把手写帮助里"没提到"的已注册命令自动追加到末尾，
+# 这样以后加命令时即使忘了同步帮助文案（或 prompts.json 里的 help），
+# /help 也会自动带上，不会再漏。
+# 格式：(主指令, (别名...), 说明, 权限)；权限 "all"=所有人 / "owner"=仅主人
+COMMANDS = (
+    ("/add", ("/remember", "/state", "#记住", "#设定", "#补充"), "记一条设定", "all"),
+    ("/check", ("/查看", "#check"), "查看设定", "all"),
+    ("/delete", ("/del", "/删除"), "删除一条设定", "all"),
+    ("/change", ("/修改",), "修改一条设定", "all"),
+    ("/help", ("/帮助", "#help", "#帮助"), "显示这张表", "all"),
+    ("/同意", ("/yes", "/accept"), "同意加好友", "owner"),
+    ("/拒绝", ("/no", "/reject"), "拒绝加好友", "owner"),
+    ("/apply", (), "应用自我修改（写盘＋重启）", "owner"),
+    ("/rollback", (), "回滚已应用的修改", "owner"),
+    ("/drop", (), "丢弃待办的提案", "owner"),
+    ("/patches", (), "查看修改记录", "owner"),
+    ("/pc", (), "把内容转交给 opencode", "owner"),
+    ("/get", (), "取 opencode 的答复", "owner"),
+    ("/speak", (), "让这条回答用语音说出来", "all"),
+    ("/repeat", (), "用语音把内容原样重复一遍", "all"),
+    ("/video", (), "引用视频再发 /video：抽帧看画面并转写语音", "all"),
+    ("/photo", (), "再发一张图就存进当前群图库", "all"),
+    ("/rename", (), "改梗图名字", "all"),
+    ("/avatar", (), "设定你自己的虚拟形象立绘", "owner"),
+    ("/redraw", (), "对一张图做二次创作（改画风/姿势/场景）", "owner"),
+    ("/memes", ("/梗图", "/图库"), "看当前场景能用的梗图主题词", "all"),
+    ("/setmeme", ("/改主题",), "改一个主题词并从B站重抓一张图", "all"),
+)
+
+
+def _help_with_auto(base):
+    """在帮助文本末尾自动补上"已注册但没写进文本"的命令，防止新增命令漏显示。"""
+    extra = []
+    for name, _alias, desc, scope in COMMANDS:
+        if name in base:
+            continue
+        tag = "（仅主人）" if scope == "owner" else ""
+        extra.append("  %s ─ %s%s" % (name, desc, tag))
+    if not extra:
+        return base
+    return base.rstrip() + "\n\n◆ 更多指令（自动补全）\n" + "\n".join(extra)
 
 
 def cmd_body(text):
@@ -5617,7 +5661,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.1.0 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.1.1 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,
