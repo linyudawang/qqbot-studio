@@ -5617,7 +5617,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.0.0 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.1.0 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,
