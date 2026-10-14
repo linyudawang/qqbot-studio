@@ -41,6 +41,14 @@ modules/
 - **自我改码**：`propose_self_patch` / `apply_self_patch` / `rollback_self_patch`（高风险，默认关闭）。
 - **转交编码 agent 的桥**：`relay_to_opencode(msg)` 把文本写进宿主机 `relay_dir/inbox/<seq>.txt`；
   `fetch_opencode_reply(seq)` 读 `relay_dir/outbox/<seq>.txt`。由 `modules/agent/` 的 broker 消费。
+- **智能增强包**（三大模块，代码集中在 `bot.py`「智能增强包」区块）：
+  - **M1 长期记忆**：`save_memory/memories_for/memories_text/forget_memory/extract_memories`；
+    `think()` 里按 `chat_key` 注入相关记忆、并置 `_mem_seen` 供后台 `Bot.memory_loop()` 定时抽取。
+    记忆域 `scopes`：群=`group:<gid>`、主人私聊=`private:owner`、普通私聊=`private:<uid>`（可共享进 `global`）。
+  - **M2 定时提醒**：`parse_when`/`add_task`/`delete_task` + 后台 `Bot.task_loop()` 到点推送（`_fire_task`）。
+  - **M3 联网搜索**：`web_search()` 走博查 Bocha；命令 `/web`、`/source` → `Bot._do_web()` →
+    `think(..., extra_sys=搜索结果)`。提示词 `web_answer` 可覆盖。
+  - 数据文件 `memory.jsonl` / `tasks.json`（已 `.gitignore`）；新增命令均已登记进 `COMMANDS`（`/help` 自动补全）。
 
 ## 如何加功能（常见需求）
 1. **加一个 QQ 命令**：在 `Bot.handle` 的命令分发处加分支（照抄 `/speak` 的写法）。

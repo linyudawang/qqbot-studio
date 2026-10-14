@@ -9,6 +9,14 @@ relay/
 self_patch/
 modules/agent/agent.config.json
 modules/pc/config.json
+memory.jsonl
+tasks.json
+avatar/
+redraw/
+ai_images/
+memes/
+memes_priv/
+memes_group/
 
 # ==== Python ====
 __pycache__/
