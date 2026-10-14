@@ -347,6 +347,16 @@ if not os.path.isabs(AVATAR_DIR):
 AVATAR_PROFILE = os.path.join(AVATAR_DIR, "profile.json")
 AVATAR_CMD = str(CFG.get("avatar_cmd", "/avatar")).strip().lower()
 AVATAR_EXPIRE = int(CFG.get("avatar_expire", 180))
+REDRAW_ENABLE = bool(CFG.get("redraw", AVATAR_ENABLE))
+REDRAW_BASE = str(CFG.get("redraw_base", AVATAR_BASE)).rstrip("/")
+REDRAW_KEY = str(CFG.get("redraw_api_key") or AVATAR_KEY)
+REDRAW_MODEL = str(CFG.get("redraw_model") or AVATAR_MODEL or "doubao-seedream-4-0-250828")
+REDRAW_SIZE = str(CFG.get("redraw_size", AVATAR_SIZE))
+REDRAW_DIR = str(CFG.get("redraw_dir", "redraw"))
+if not os.path.isabs(REDRAW_DIR):
+    REDRAW_DIR = os.path.join(BASE, REDRAW_DIR)
+REDRAW_CMD = str(CFG.get("redraw_cmd", "/redraw")).strip().lower()
+REDRAW_EXPIRE = int(CFG.get("redraw_expire", AVATAR_EXPIRE))
 PET_API_ENABLE = bool(CFG.get("pet_api", False))
 PET_API_PORT = int(CFG.get("pet_api_port", 8790))
 PET_API_TOKEN = str(CFG.get("pet_api_token", "") or "")
@@ -521,6 +531,9 @@ _HELP_DEFAULT = (
         "◆ 虚拟形象（仅主人私聊）\n"
         "  /avatar ─ 我先问你要参考图；你再发一张图（二次元角色图最好），"
         "我照着它的画风画出我自己的形象立绘，并存成形象档案\n\n"
+        "◆ 图片二次创作（仅主人）\n"
+        "  /redraw ─ 你发一张图（可附一句想要的效果），我照着它二次创作一张新图"
+        "（改画风/换姿势/加场景等），只出图、不写进形象档案\n\n"
         "◆ 梗图主题词\n"
         "  /memes ─ 看当前场景能用的梗图主题词（别名 /梗图 /图库），B站自动灌的会标 [B站]\n"
         "  /setmeme 旧名字 新名字 ─ 改一个主题词，并用新词从B站重抓一张图（别名 /改主题）\n\n"
@@ -784,6 +797,12 @@ _DEF_AVATAR_PROMPT = (
     "只做『提升画质与细节、让构图更适合当角色立绘』这类加工，其余全部忠于参考图——"
     "不要改动角色的核心外貌特征，也不要额外添加参考图里没有的元素。"
 )
+_DEF_REDRAW_PROMPT = (
+    "参考我发给你的这张图，进行二次创作：忠实保留图中主体（人物/角色）的核心特征——"
+    "发型、发色、瞳色、五官长相、服装和整体气质，在此基础上按我的要求重新绘制。"
+    "只做二次创作加工（改画风、换姿势、换场景、调氛围、加细节等），"
+    "不要替换、删减或凭空增加主体，整体保持高质量、细节丰富、光影自然。"
+)
 
 _DRAW_CMD_RE = re.compile(
     r"(生成[^!！。，,\n]{0,12}(?:图|表情包|壁纸)"
@@ -1002,6 +1021,7 @@ _hists = {}
 _paused = False
 _await_photo = {}
 _await_avatar = {}
+_await_redraw = {}
 _img_recent = {}
 _img_search_hits = {}
 
@@ -2247,6 +2267,67 @@ def avatar_generate(ref, extra=""):
         with open(saved, "wb") as f:
             f.write(img)
         _save_avatar_profile(saved, prompt)
+    except Exception:
+        saved = None
+    return {"ok": True, "path": saved, "seg": image_segment_from_bytes(img)}
+
+
+def redraw_generate(ref, extra=""):
+    """照着参考图做二次创作，返回图片段和本地存档路径；不写入形象档案。"""
+    if not REDRAW_ENABLE:
+        return {"ok": False, "error": "二次创作功能没开（config 里把 redraw 设为 true）"}
+    if not REDRAW_KEY:
+        return {"ok": False, "error": "还没配画图 API Key（config 里填 avatar_api_key 或 redraw_api_key）"}
+    du = avatar_ref_to_data_url(ref)
+    if not du:
+        return {"ok": False, "error": "参考图读不到（下载失败或格式不支持）"}
+    prompt = P("redraw_prompt", _DEF_REDRAW_PROMPT).strip()
+    extra = (extra or "").strip()
+    if extra:
+        prompt = prompt + "额外要求：" + extra
+    if len(prompt) > 800:
+        prompt = prompt[:800]
+    body = {
+        "model": REDRAW_MODEL,
+        "prompt": prompt,
+        "image": [du],
+        "size": REDRAW_SIZE,
+        "watermark": False,
+        "response_format": "url",
+    }
+    try:
+        r = http_json(REDRAW_BASE + "/images/generations", body,
+                      {"Authorization": "Bearer " + REDRAW_KEY}, timeout=240)
+    except Exception as e:
+        return {"ok": False, "error": "二次创作接口出错: %s" % e}
+    data = r.get("data") or []
+    if not data:
+        return {"ok": False, "error": "二次创作接口没返回内容: %s" % str(r)[:200]}
+    item = data[0]
+    b64 = item.get("b64_json")
+    url = item.get("url")
+    if b64:
+        try:
+            img = base64.b64decode(b64)
+        except Exception as e:
+            return {"ok": False, "error": "图片解码失败: %s" % e}
+    elif url:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=90) as rp:
+                img = rp.read(IMAGE_SEND_MAX + 1)
+            if len(img) > IMAGE_SEND_MAX:
+                return {"ok": False, "error": "生成图太大"}
+        except Exception as e:
+            return {"ok": False, "error": "下载生成图失败: %s" % e}
+    else:
+        return {"ok": False, "error": "二次创作接口没给出图片"}
+    saved = None
+    try:
+        os.makedirs(REDRAW_DIR, exist_ok=True)
+        saved = os.path.join(REDRAW_DIR, "redraw_%d.png" % int(time.time() * 1000))
+        with open(saved, "wb") as f:
+            f.write(img)
     except Exception:
         saved = None
     return {"ok": True, "path": saved, "seg": image_segment_from_bytes(img)}
@@ -4703,6 +4784,26 @@ class Bot:
                          "画好啦～这就是我的样子，爸爸觉得像吗 (〃▽〃)")
         log.info("AVATAR ok uid=%s path=%s", uid, r.get("path"))
 
+    async def _do_redraw(self, uid, ev, ref, extra=""):
+        mtype = ev.get("message_type")
+        if not REDRAW_ENABLE:
+            await self.reply(mtype, uid, ev.get("group_id"),
+                             "呜，我现在还做不了二次创作（config 里把 redraw 设为 true 哦）(・_・?)")
+            return
+        await self.reply(mtype, uid, ev.get("group_id"),
+                         "好，我照着这张图创作一张……爸爸等我一下下 (๑•̀ㅂ•́)و✧")
+        r = await asyncio.get_event_loop().run_in_executor(
+            None, redraw_generate, ref, extra)
+        if not r.get("ok"):
+            await self.reply(mtype, uid, ev.get("group_id"),
+                             "唔……创作不出来：%s (´･ω･`)" % r.get("error"))
+            log.info("REDRAW fail uid=%s err=%s", uid, r.get("error"))
+            return
+        await self.reply(mtype, uid, ev.get("group_id"), [r["seg"]])
+        await self.reply(mtype, uid, ev.get("group_id"),
+                         "创作好啦～看看喜不喜欢 (〃▽〃)")
+        log.info("REDRAW ok uid=%s path=%s", uid, r.get("path"))
+
     async def call_api(self, action, params, timeout=10):
         if not self.ws:
             return None
@@ -4931,6 +5032,12 @@ class Bot:
                 extra = want[2] if len(want) > 2 else ""
                 await self._do_avatar(uid, ev, images[0], extra)
                 return
+        if images and ck in _await_redraw:
+            want = _await_redraw.pop(ck, None)
+            if want and uid == want[0] and time.time() - want[1] <= REDRAW_EXPIRE:
+                extra = want[2] if len(want) > 2 else ""
+                await self._do_redraw(uid, ev, images[0], extra)
+                return
         if images and FORWARD_RE.search(text or ""):
             if not _muted:
                 if ck.startswith("group:"):
@@ -5032,6 +5139,24 @@ class Bot:
                 await self.reply(mtype, uid, ev.get("group_id"),
                                  "好呀～把你想要我照着画的参考图发过来吧，我照着画我自己的样子 (๑•̀ㅂ•́)و✧")
             log.info("AVATAR await uid=%s key=%s extra=%s", uid, ck, extra[:30])
+            return
+
+        if _avb.lower() == REDRAW_CMD or _avb.lower().startswith(REDRAW_CMD + " "):
+            if not is_owner:
+                if not _muted:
+                    await self.reply(mtype, uid, ev.get("group_id"),
+                                     "只有爸爸能让我二次创作哦 (・_・?)")
+                log.info("REDRAW denied uid=%s key=%s", uid, ck)
+                return
+            extra = _avb[len(REDRAW_CMD):].strip()
+            if images:
+                await self._do_redraw(uid, ev, images[0], extra)
+                return
+            _await_redraw[ck] = (uid, time.time(), extra)
+            if not _muted:
+                await self.reply(mtype, uid, ev.get("group_id"),
+                                 "好呀～把你想要我二次创作的图发过来吧（也可以带一句想要的效果） (๑•̀ㅂ•́)و✧")
+            log.info("REDRAW await uid=%s key=%s extra=%s", uid, ck, extra[:30])
             return
 
         if cmd_body(text).strip().lower() in HELP_CMDS:

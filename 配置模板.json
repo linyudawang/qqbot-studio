@@ -139,6 +139,15 @@
   "avatar_cmd": "/avatar",
   "avatar_expire": 180,
 
+  "redraw": false,
+  "redraw_base": "https://ark.cn-beijing.volces.com/api/v3",
+  "redraw_api_key": "",
+  "redraw_model": "",
+  "redraw_size": "2K",
+  "redraw_dir": "redraw",
+  "redraw_cmd": "/redraw",
+  "redraw_expire": 180,
+
   "pet_api": true,
   "pet_api_port": 8790,
   "pet_api_token": "",
