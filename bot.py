@@ -328,7 +328,7 @@ if not FFPROBE_EXE:
     FFPROBE_EXE = _fp if (_fp and os.path.exists(_fp)) else "ffprobe"
 VIDEO_ENABLE = bool(CFG.get("video", True))
 VIDEO_MAX_FRAMES = int(CFG.get("video_max_frames", 8))
-VIDEO_MAX_SECONDS = int(CFG.get("video_max_seconds", 180))
+VIDEO_MAX_SECONDS = int(CFG.get("video_max_seconds", 60))
 NAPCAT_LOCAL = bool(CFG.get("napcat_local", True))
 TTS_CACHE = os.path.join(BASE, "tts_cache")
 try:
@@ -872,6 +872,10 @@ _DEF_VIDEO_UNDERSTAND = (
 _DEF_VIDEO_NO_FFMPEG = (
     "呜，我这边还没装好用来解析视频的小工具（ffmpeg），现在看不了视频呢 (´･ω･`)。"
     "请在电脑上装一下 ffmpeg，或者把它的路径填到配置里的 ffmpeg_exe 再试试～"
+)
+_DEF_VIDEO_TOO_LONG = (
+    "这条视频太长啦，超过 %d 秒的我就不看咯，换条短一点的再发给我好不好 (・_・?)"
+    % VIDEO_MAX_SECONDS
 )
 _DEF_SELF_PATCH = (
     "你要给自己（机器人源码）提交一份代码修改提案。规则："
@@ -3903,8 +3907,12 @@ def _video_duration(path):
 
 
 def _extract_video(path):
-    """抽关键帧 + 抽音轨转文字，返回 {"frames":[...], "transcript": str|None, "dur": float, "dir": str}。"""
+    """抽关键帧 + 抽音轨转文字，返回 {"frames":[...], "transcript": str|None, "dur": float, "dir": str}。
+    时长超过 VIDEO_MAX_SECONDS 时拒绝处理，返回 {"too_long": True, ...}。"""
     dur = _video_duration(path)
+    if dur and dur > VIDEO_MAX_SECONDS:
+        return {"frames": [], "transcript": None, "dur": float(dur),
+                "dir": None, "too_long": True}
     outdir = tempfile.mkdtemp(prefix="vidf_")
     max_sec = max(1, VIDEO_MAX_SECONDS)
     # 处理窗口：最多前 max_sec 秒
@@ -5683,6 +5691,12 @@ class Bot:
                 video_info = await describe_video(self.call_api, videos)
                 if video_info:
                     _register_video_dir(video_info.get("dir"))
+                if video_info and video_info.get("too_long"):
+                    log.info("VIDEO %s from=%s 时长=%.1fs 超过上限，拒绝",
+                             ck, uid, video_info.get("dur") or 0)
+                    await self.reply(ev.get("message_type"), uid, ev.get("group_id"),
+                                     P("video_too_long", _DEF_VIDEO_TOO_LONG))
+                    return
                 if video_info and (video_info.get("frames") or video_info.get("transcript")):
                     vt = video_info.get("transcript")
                     frames = list(video_info.get("frames") or [])
@@ -6139,6 +6153,12 @@ class Bot:
             await self.reply(mtype, uid, ev.get("group_id"),
                              "让我瞧瞧这条视频……(⊙o⊙)")
             info = await describe_video(self.call_api, qvideos)
+            if info and info.get("too_long"):
+                await self.reply(mtype, uid, ev.get("group_id"),
+                                 P("video_too_long", _DEF_VIDEO_TOO_LONG))
+                log.info("VIDEO_CMD %s from=%s 时长=%.1fs 超过上限，拒绝",
+                         ck, uid, info.get("dur") or 0)
+                return
             if info:
                 desc = build_video_desc(info)
                 if info.get("dir"):
@@ -6402,7 +6422,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.2.4 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.2.5 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,
