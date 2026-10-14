@@ -159,6 +159,7 @@ CORPUS_ENABLED = bool(CFG.get("corpus_enabled", True))
 CORPUS_PROB = float(CFG.get("corpus_prob", 0.5))
 CORPUS_MAX = int(CFG.get("corpus_max_len", 180))
 VISION_ENABLE = bool(CFG.get("vision", True))
+VISION_MAX_IMAGES = max(1, int(CFG.get("vision_max_images", 8)))
 GROUP_CHATTER = bool(CFG.get("group_chatter", True))
 CHATTER_INTERVAL = int(CFG.get("chatter_interval", 30))
 CHATTER_WINDOW = int(CFG.get("chatter_window", 120))
@@ -326,7 +327,7 @@ if not FFPROBE_EXE:
     _fp = os.path.join(os.path.dirname(FFMPEG_EXE), "ffprobe.exe") if os.path.sep in FFMPEG_EXE else ""
     FFPROBE_EXE = _fp if (_fp and os.path.exists(_fp)) else "ffprobe"
 VIDEO_ENABLE = bool(CFG.get("video", True))
-VIDEO_MAX_FRAMES = int(CFG.get("video_max_frames", 4))
+VIDEO_MAX_FRAMES = int(CFG.get("video_max_frames", 8))
 VIDEO_MAX_SECONDS = int(CFG.get("video_max_seconds", 180))
 NAPCAT_LOCAL = bool(CFG.get("napcat_local", True))
 TTS_CACHE = os.path.join(BASE, "tts_cache")
@@ -3906,9 +3907,13 @@ def _extract_video(path):
     dur = _video_duration(path)
     outdir = tempfile.mkdtemp(prefix="vidf_")
     n = max(1, VIDEO_MAX_FRAMES)
-    fps = 1.0
-    if dur and dur > 0:
-        fps = min(max(float(n) / dur, 0.05), 2.0)
+    max_sec = max(1, VIDEO_MAX_SECONDS)
+    # 处理窗口：最多前 max_sec 秒
+    span = min(float(dur), float(max_sec)) if (dur and dur > 0) else 0.0
+    # 目标：每 0.5s 一帧（fps=2）；若帧数会超过上限 n，则在整段窗口内均匀取 n 帧
+    fps = 2.0
+    if span and span * fps > n:
+        fps = float(n) / span
     jpg = os.path.join(outdir, "f_%02d.jpg")
     try:
         subprocess.run(
@@ -4754,10 +4759,12 @@ def caption_image(data_url):
         return None
 
 
-def summarize_video(frames, transcript, limit=2):
+def summarize_video(frames, transcript, limit=None):
     """把视频关键帧+字幕概括成一段文字；失败返回 None。"""
     if not DEEPSEEK_KEY:
         return None
+    if limit is None:
+        limit = max(1, VIDEO_MAX_FRAMES)
     head = "这是视频的关键帧"
     if transcript:
         head += "（视频里的语音是：%s）" % transcript
@@ -4774,7 +4781,7 @@ def summarize_video(frames, transcript, limit=2):
     body = {
         "model": MODEL,
         "temperature": 0.3,
-        "max_tokens": 1600,
+        "max_tokens": 2048,
         "messages": [
             {"role": "system", "content": P("video_understand", _DEF_VIDEO_UNDERSTAND)},
             {"role": "user", "content": parts},
@@ -4878,7 +4885,7 @@ async def think(chat_key, text, allow_tools, api, group_ctx=None, images=None, d
     if VISION_ENABLE and images:
         img_entries = []
         captions = []
-        for u in images[:4]:
+        for u in images[:VISION_MAX_IMAGES]:
             try:
                 du = await asyncio.get_event_loop().run_in_executor(
                     None, fetch_image_data_url, u
@@ -6391,7 +6398,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.2.2 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.2.3 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,

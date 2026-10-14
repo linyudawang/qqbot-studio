@@ -15,7 +15,7 @@ function Warn($m) { Write-Host "[!] $m" -ForegroundColor Yellow }
 function Err($m)  { Write-Host "[x] $m" -ForegroundColor Red }
 
 Write-Host ("=" * 60) -ForegroundColor DarkCyan
-Write-Host "   QQBot Studio   v1.2.2" -ForegroundColor Cyan
+Write-Host "   QQBot Studio   v1.2.3" -ForegroundColor Cyan
 Write-Host "   一键部署向导" -ForegroundColor DarkGray
 Write-Host ("=" * 60) -ForegroundColor DarkCyan
 Write-Host ""
