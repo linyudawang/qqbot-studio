@@ -867,6 +867,10 @@ _DEF_VIDEO_UNDERSTAND = (
     "你在看一段短视频。请用一段话概括：画面里发生了什么（人物、场景、动作）、"
     "以及语音都说了什么。只描述你确实看到/听到的内容，看不出的不要编。控制在 100 字以内。"
 )
+_DEF_VIDEO_NO_FFMPEG = (
+    "呜，我这边还没装好用来解析视频的小工具（ffmpeg），现在看不了视频呢 (´･ω･`)。"
+    "请在电脑上装一下 ffmpeg，或者把它的路径填到配置里的 ffmpeg_exe 再试试～"
+)
 _DEF_SELF_PATCH = (
     "你要给自己（机器人源码）提交一份代码修改提案。规则："
     "1) 改前必须先用 read_self_file 读原文件，拿到要替换的【唯一】一段旧文本；"
@@ -3842,6 +3846,24 @@ def _ffmpeg_flags():
     return getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
+_FFMPEG_OK = None
+
+
+def ffmpeg_available():
+    """检测 ffmpeg 是否可用（缓存结果；缺失时告警一次）。"""
+    global _FFMPEG_OK
+    if _FFMPEG_OK is None:
+        try:
+            r = subprocess.run([FFMPEG_EXE, "-version"], capture_output=True,
+                               timeout=20, creationflags=_ffmpeg_flags())
+            _FFMPEG_OK = (r.returncode == 0)
+        except Exception:
+            _FFMPEG_OK = False
+        if not _FFMPEG_OK:
+            log.warning("未检测到可用的 ffmpeg（%s）；视频/语音处理将不可用", FFMPEG_EXE)
+    return _FFMPEG_OK
+
+
 def _video_duration(path):
     try:
         r = subprocess.run(
@@ -5608,6 +5630,10 @@ class Bot:
         if videos and VIDEO_CMD_RE.match(cmd_body(text)) is None:
             v_for_me = ev.get("message_type") == "private" or at_me
             if v_for_me and VIDEO_ENABLE:
+                if not ffmpeg_available():
+                    await self.reply(ev.get("message_type"), uid, ev.get("group_id"),
+                                     P("video_no_ffmpeg", _DEF_VIDEO_NO_FFMPEG))
+                    return
                 video_info = await describe_video(self.call_api, videos)
                 if video_info and (video_info.get("frames") or video_info.get("transcript")):
                     vt = video_info.get("transcript")
@@ -6053,6 +6079,10 @@ class Bot:
                 await self.reply(mtype, uid, ev.get("group_id"),
                                  "视频检测还没开哦 (・_・?)")
                 return
+            if not ffmpeg_available():
+                await self.reply(mtype, uid, ev.get("group_id"),
+                                 P("video_no_ffmpeg", _DEF_VIDEO_NO_FFMPEG))
+                return
             qvideos = videos or await fetch_quoted_videos(self.call_api, reply_id)
             if not qvideos:
                 await self.reply(mtype, uid, ev.get("group_id"),
@@ -6324,7 +6354,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.2.0 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.2.1 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,

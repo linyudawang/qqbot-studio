@@ -9,7 +9,7 @@ try {
 } catch {}
 
 $APP = "QQBot Studio"
-$VERSION = "1.2.0"
+$VERSION = "1.2.1"
 $PS = "powershell"
 $BYPASS = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File")
 
