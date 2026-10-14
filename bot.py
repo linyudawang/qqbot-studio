@@ -159,7 +159,7 @@ CORPUS_ENABLED = bool(CFG.get("corpus_enabled", True))
 CORPUS_PROB = float(CFG.get("corpus_prob", 0.5))
 CORPUS_MAX = int(CFG.get("corpus_max_len", 180))
 VISION_ENABLE = bool(CFG.get("vision", True))
-VISION_MAX_IMAGES = max(1, int(CFG.get("vision_max_images", 8)))
+VISION_MAX_IMAGES = int(CFG.get("vision_max_images", 0))  # 0 = 不限制
 GROUP_CHATTER = bool(CFG.get("group_chatter", True))
 CHATTER_INTERVAL = int(CFG.get("chatter_interval", 30))
 CHATTER_WINDOW = int(CFG.get("chatter_window", 120))
@@ -3906,15 +3906,17 @@ def _extract_video(path):
     """抽关键帧 + 抽音轨转文字，返回 {"frames":[...], "transcript": str|None, "dur": float, "dir": str}。"""
     dur = _video_duration(path)
     outdir = tempfile.mkdtemp(prefix="vidf_")
-    n = max(1, VIDEO_MAX_FRAMES)
     max_sec = max(1, VIDEO_MAX_SECONDS)
     # 处理窗口：最多前 max_sec 秒
     span = min(float(dur), float(max_sec)) if (dur and dur > 0) else 0.0
-    # 目标：每 0.5s 一帧（fps=2）；若帧数会超过上限 n，则在整段窗口内均匀取 n 帧
-    fps = 2.0
-    if span and span * fps > n:
+    # 帧数 = 时长 × 2（每 0.5s 一帧），在整段窗口内均匀分布，不封顶
+    if span:
+        n = max(1, int(round(span * 2)))
         fps = float(n) / span
-    jpg = os.path.join(outdir, "f_%02d.jpg")
+    else:
+        n = max(1, VIDEO_MAX_FRAMES)
+        fps = 2.0
+    jpg = os.path.join(outdir, "f_%05d.jpg")
     try:
         subprocess.run(
             [FFMPEG_EXE, "-y", "-hide_banner", "-loglevel", "error",
@@ -4763,13 +4765,14 @@ def summarize_video(frames, transcript, limit=None):
     """把视频关键帧+字幕概括成一段文字；失败返回 None。"""
     if not DEEPSEEK_KEY:
         return None
-    if limit is None:
-        limit = max(1, VIDEO_MAX_FRAMES)
+    frames = frames or []
+    if limit is not None:
+        frames = frames[:limit]
     head = "这是视频的关键帧"
     if transcript:
         head += "（视频里的语音是：%s）" % transcript
     parts = [{"type": "text", "text": head + "。"}]
-    for f in (frames or [])[:limit]:
+    for f in frames:
         try:
             du = fetch_image_data_url(f)
         except Exception:
@@ -4781,7 +4784,7 @@ def summarize_video(frames, transcript, limit=None):
     body = {
         "model": MODEL,
         "temperature": 0.3,
-        "max_tokens": 2048,
+        "max_tokens": 4096,
         "messages": [
             {"role": "system", "content": P("video_understand", _DEF_VIDEO_UNDERSTAND)},
             {"role": "user", "content": parts},
@@ -4885,7 +4888,8 @@ async def think(chat_key, text, allow_tools, api, group_ctx=None, images=None, d
     if VISION_ENABLE and images:
         img_entries = []
         captions = []
-        for u in images[:VISION_MAX_IMAGES]:
+        _imgs = images if VISION_MAX_IMAGES <= 0 else images[:VISION_MAX_IMAGES]
+        for u in _imgs:
             try:
                 du = await asyncio.get_event_loop().run_in_executor(
                     None, fetch_image_data_url, u
@@ -6398,7 +6402,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.2.3 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.2.4 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,

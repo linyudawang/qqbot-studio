@@ -32,7 +32,7 @@
   "corpus_max_len": 200,
 
   "vision": true,
-  "vision_max_images": 8,
+  "vision_max_images": 0,
   "video": true,
   "video_max_frames": 8,
   "video_max_seconds": 180,
