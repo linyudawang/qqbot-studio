@@ -9,6 +9,7 @@
 import asyncio
 import array
 import base64
+import contextvars
 import gzip
 import json
 import os
@@ -3864,6 +3865,31 @@ def ffmpeg_available():
     return _FFMPEG_OK
 
 
+_VIDEO_DIRS_CV = contextvars.ContextVar("video_dirs", default=None)
+
+
+def _register_video_dir(d):
+    """登记本条消息产生的临时视频目录，供处理结束时统一清理。"""
+    if not d:
+        return
+    lst = _VIDEO_DIRS_CV.get()
+    if lst is not None:
+        lst.append(str(d))
+
+
+def _cleanup_video_dirs():
+    """清理当前消息登记的所有临时视频目录（幂等，可重复调用）。"""
+    lst = _VIDEO_DIRS_CV.get()
+    if not lst:
+        return
+    for d in lst:
+        try:
+            shutil.rmtree(d, ignore_errors=True)
+        except Exception:
+            pass
+    lst.clear()
+
+
 def _video_duration(path):
     try:
         r = subprocess.run(
@@ -5592,6 +5618,14 @@ class Bot:
                     },
                 )
 
+    async def _run_handle(self, ev):
+        """在独立上下文里处理一条消息，结束（含异常）时清理本条消息的临时目录。"""
+        _VIDEO_DIRS_CV.set([])
+        try:
+            await self.handle(ev)
+        finally:
+            _cleanup_video_dirs()
+
     async def handle(self, ev):
         global _paused
         post = ev.get("post_type")
@@ -5627,6 +5661,7 @@ class Bot:
                     at_me = True
                     log.info("VOICE %s from=%s -> %s", ck, uid, vt[:80])
         video_info = None
+        video_frames = []
         if videos and VIDEO_CMD_RE.match(cmd_body(text)) is None:
             v_for_me = ev.get("message_type") == "private" or at_me
             if v_for_me and VIDEO_ENABLE:
@@ -5635,6 +5670,8 @@ class Bot:
                                      P("video_no_ffmpeg", _DEF_VIDEO_NO_FFMPEG))
                     return
                 video_info = await describe_video(self.call_api, videos)
+                if video_info:
+                    _register_video_dir(video_info.get("dir"))
                 if video_info and (video_info.get("frames") or video_info.get("transcript")):
                     vt = video_info.get("transcript")
                     frames = list(video_info.get("frames") or [])
@@ -5647,7 +5684,7 @@ class Bot:
                         elif vt:
                             tag += "（视频里的语音是：%s）" % vt
                     else:
-                        images = images + frames
+                        video_frames = frames
                         tag = "[视频]"
                         if vt:
                             tag += "（视频里的语音是：%s）" % vt
@@ -6189,7 +6226,7 @@ class Bot:
                 allow_tools,
                 self.call_api,
                 g_ctx,
-                images,
+                (images + video_frames) if video_frames else images,
                 dedupe_against=_recent.get(str(ev.get("group_id")), ()),
                 identity=identity,
                 restricted=not is_owner,
@@ -6338,7 +6375,7 @@ class Bot:
                             if not fut.done():
                                 fut.set_result(ev)
                             continue
-                        asyncio.create_task(self.handle(ev))
+                        asyncio.create_task(self._run_handle(ev))
             except Exception as e:
                 log.warning("OneBot 连接断开: %s，%ss 后重试", e, backoff)
                 self.ws = None
@@ -6354,7 +6391,7 @@ def main():
     _load_meme_scores()
     log.info("梗语料库已载入%d条 (prob=%.1f)", len(_corpus), CORPUS_PROB)
     log.info(
-        "QQBot Studio v1.2.1 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
+        "QQBot Studio v1.2.2 启动，owner=%s model=%s tools=%s 群学习=%s(已载入%d群) 自动同意入群=%s",
         OWNER_QQ,
         MODEL,
         ENABLE_TOOLS,
