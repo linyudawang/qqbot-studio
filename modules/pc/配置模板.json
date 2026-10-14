@@ -1,0 +1,8 @@
+{
+  "port": 8765,
+  "secret": "change-me-to-a-random-string",
+  "ssh_host": "user@your-server-ip",
+  "ssh_key": "C:\\Users\\YOURNAME\\.ssh\\id_ed25519",
+  "napcat_dir": "",
+  "bot_qq": ""
+}

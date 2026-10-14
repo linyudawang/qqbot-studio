@@ -1,0 +1,17 @@
+{
+  "_comment": "编码 agent broker 配置。复制为 agent.config.json 后按需修改。生成发件箱/收件箱的 relay_dir 必须与引擎 config.json 的 relay_dir 一致。",
+
+  "backend": "local",
+  "relay_dir": "",
+  "repo_dir": "",
+  "poll_interval": 5,
+  "max_steps": 25,
+  "allow_shell": false,
+  "allowed_roots": [],
+
+  "base_url": "",
+  "api_key": "",
+  "model": "",
+  "opencode_cmd": "opencode run",
+  "system_prompt": ""
+}
