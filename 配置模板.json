@@ -2,6 +2,8 @@
   "_comment": "AI 机器人框架 · 空白配置模板。复制为 config.json 后填写。带 api_key / token / qq / url 的接口项默认全部留空，按需填。一键安装.ps1 会自动生成本文件。",
 
   "ws_url": "ws://127.0.0.1:3001",
+  "auto_restart": true,
+  "restart_check_interval": 5,
   "bot_qq": "",
   "owner_qq": [],
   "owner_name": "",

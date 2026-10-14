@@ -28,6 +28,7 @@ import hashlib
 import io
 import math
 import struct
+import sys
 import tempfile
 import wave
 from collections import deque
@@ -64,6 +65,72 @@ def load_json(path, default=None):
 
 
 CFG = load_json(CFG_PATH, {}) or {}
+
+# ---------- 代码/配置更新后自动重启 ----------
+# 当 bot.py 或 config.json 被改动（例如推送/应用更新后），自动重启进程以加载新代码。
+AUTO_RESTART = bool(CFG.get("auto_restart", True))
+RESTART_CHECK_INTERVAL = float(CFG.get("restart_check_interval", 5))
+_RESTART_WATCH = [os.path.abspath(__file__), CFG_PATH]
+_RESTART_MTIMES = {}
+_RESTART_PENDING = False
+
+
+def _restart_baseline():
+    for p in _RESTART_WATCH:
+        try:
+            _RESTART_MTIMES[p] = os.path.getmtime(p)
+        except OSError:
+            _RESTART_MTIMES[p] = 0.0
+
+
+def _restart_ready():
+    """确认更新后的 bot.py 能编译、config.json 能解析，避免重启到半成品。"""
+    try:
+        with open(os.path.abspath(__file__), "rb") as f:
+            compile(f.read(), os.path.abspath(__file__), "exec")
+    except Exception as e:
+        log.warning("检测到 bot.py 有更新但暂时无法编译(%s)，稍后重试", e)
+        return False
+    if os.path.exists(CFG_PATH):
+        try:
+            with open(CFG_PATH, "r", encoding="utf-8-sig") as f:
+                json.load(f)
+        except Exception as e:
+            log.warning("检测到 config.json 有更新但暂时无法解析(%s)，稍后重试", e)
+            return False
+    return True
+
+
+def _restart_self():
+    log.info("检测到代码/配置更新，正在自动重启……")
+    try:
+        for h in log.handlers:
+            h.flush()
+    except Exception:
+        pass
+    os.execv(sys.executable,
+             [sys.executable, os.path.abspath(__file__)] + sys.argv[1:])
+
+
+async def _auto_restart_loop():
+    global _RESTART_PENDING
+    _restart_baseline()
+    while True:
+        await asyncio.sleep(max(1.0, RESTART_CHECK_INTERVAL))
+        if not AUTO_RESTART:
+            continue
+        for p in _RESTART_WATCH:
+            try:
+                mt = os.path.getmtime(p)
+            except OSError:
+                continue
+            if mt != _RESTART_MTIMES.get(p):
+                _RESTART_MTIMES[p] = mt
+                _RESTART_PENDING = True
+        if _RESTART_PENDING:
+            await asyncio.sleep(2)
+            if _restart_ready():
+                _restart_self()
 
 # ---------- 品牌/称呼可配置 ----------
 # 把源码里写死的「爸爸 / 女儿 / 鲸鱼娘 / 霖雨 / 石丰」抽成配置项：
@@ -6381,6 +6448,7 @@ class Bot:
 
     async def run(self):
         start_pet_api(self, asyncio.get_event_loop())
+        asyncio.create_task(_auto_restart_loop())
         asyncio.create_task(self.chatter_loop())
         if MEME_AUTO_INGEST:
             asyncio.create_task(self.meme_loop())
