@@ -2,7 +2,8 @@
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $desktop = [Environment]::GetFolderPath('Desktop')
 $lnk = Join-Path $desktop "QQBot Studio.lnk"
-$icon = Join-Path $here "assets\avatar_icon.ico"
+$icon = Join-Path $here "assets\qqbotstudio_icon.ico"
+if (-not (Test-Path -LiteralPath $icon)) { $icon = Join-Path $here "assets\avatar_icon.ico" }
 if (-not (Test-Path -LiteralPath $icon)) { $icon = Join-Path $here "assets\icon.ico" }
 
 try {

@@ -8,7 +8,7 @@ try {
 } catch {}
 
 Write-Host ""
-Write-Host "   QQBot Studio   v1.2.5" -ForegroundColor Cyan
+Write-Host "   QQBot Studio   v1.2.6" -ForegroundColor Cyan
 Write-Host "   一键部署的 AI QQ 机器人框架" -ForegroundColor DarkGray
 Write-Host ("   " + ("-" * 42)) -ForegroundColor DarkCyan
 Write-Host ""

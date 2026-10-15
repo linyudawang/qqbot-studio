@@ -1,0 +1,256 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="QQBot Studio 配置向导" Width="760" Height="720"
+        WindowStartupLocation="CenterScreen" WindowStyle="None"
+        ResizeMode="CanResize" Background="#0B1220"
+        FontFamily="Microsoft YaHei UI, Segoe UI" TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True">
+  <Window.Resources>
+    <Style x:Key="Chrome" TargetType="Button">
+      <Setter Property="Foreground" Value="#8A98AE"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Width" Value="44"/>
+      <Setter Property="Height" Value="46"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" Background="{TemplateBinding Background}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#1C2942"/>
+                <Setter Property="Foreground" Value="#E6EDF7"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryBtn" TargetType="Button">
+      <Setter Property="Foreground" Value="#FFFFFF"/>
+      <Setter Property="Background" Value="#2E6BE6"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Height" Value="38"/>
+      <Setter Property="Padding" Value="22,0"/>
+      <Setter Property="FontSize" Value="13.5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" CornerRadius="10" Background="{TemplateBinding Background}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#3E7BF0"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#255BC8"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="GhostBtn" TargetType="Button">
+      <Setter Property="Foreground" Value="#C9D6EA"/>
+      <Setter Property="Background" Value="#141D30"/>
+      <Setter Property="BorderBrush" Value="#223049"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Height" Value="38"/>
+      <Setter Property="Padding" Value="20,0"/>
+      <Setter Property="FontSize" Value="13.5"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="bd" CornerRadius="10" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="bd" Property="Background" Value="#1C2942"/>
+                <Setter TargetName="bd" Property="BorderBrush" Value="#3E72C9"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="Sec" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#6FB4FF"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Margin" Value="2,18,0,6"/>
+    </Style>
+
+    <Style x:Key="Lbl" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#A9B7CC"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Width" Value="188"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0,0,12,0"/>
+    </Style>
+
+    <Style x:Key="Field" TargetType="TextBox">
+      <Setter Property="Background" Value="#0E1626"/>
+      <Setter Property="Foreground" Value="#E6EDF7"/>
+      <Setter Property="BorderBrush" Value="#223049"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Width" Value="470"/>
+      <Setter Property="Margin" Value="0,4"/>
+      <Setter Property="CaretBrush" Value="#6FB4FF"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="Combo" TargetType="ComboBox">
+      <Setter Property="Background" Value="#0E1626"/>
+      <Setter Property="Foreground" Value="#E6EDF7"/>
+      <Setter Property="BorderBrush" Value="#223049"/>
+      <Setter Property="Height" Value="30"/>
+      <Setter Property="Width" Value="470"/>
+      <Setter Property="Margin" Value="0,4"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="Chk" TargetType="CheckBox">
+      <Setter Property="Foreground" Value="#E6EDF7"/>
+      <Setter Property="FontSize" Value="12.5"/>
+      <Setter Property="Margin" Value="0,4"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="Hint" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#6F7D95"/>
+      <Setter Property="FontSize" Value="11.5"/>
+      <Setter Property="Margin" Value="0,2,0,0"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+  </Window.Resources>
+
+  <Border Background="#0B1220" BorderBrush="#243352" BorderThickness="1">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="46"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="58"/>
+      </Grid.RowDefinitions>
+
+      <!-- title bar -->
+      <Grid x:Name="TitleBar" Grid.Row="0" Background="#0E1626">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="14,0,0,0" VerticalAlignment="Center">
+          <Image x:Name="imgMark" Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
+          <TextBlock Text="QQBot Studio" Foreground="#C9D6EA" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <Border Background="#182236" CornerRadius="7" Padding="7,1" Margin="10,0,0,0" VerticalAlignment="Center">
+            <TextBlock Text="配置向导 v1.2.6" Foreground="#7E8CA6" FontSize="11"/>
+          </Border>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <Button x:Name="btnMin" Style="{StaticResource Chrome}" Content="&#x2013;"/>
+          <Button x:Name="btnClose" Style="{StaticResource Chrome}" Content="&#x2715;"/>
+        </StackPanel>
+      </Grid>
+
+      <!-- body -->
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,16,24,8">
+        <StackPanel>
+          <TextBlock Text="填写下面的信息即可完成配置。直接留空 = 使用默认值；不确定的项可以先跳过，之后在控制台点【安装 / 重新配置】再改。"
+                     Foreground="#8A98AE" FontSize="12" TextWrapping="Wrap" Margin="2,0,0,4"/>
+
+          <TextBlock Style="{StaticResource Sec}" Text="① 账号与连接"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="机器人 QQ 号（必填）"/><TextBox x:Name="txtBotQq" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="主人 QQ 号"/><TextBox x:Name="txtOwnerQq" Style="{StaticResource Field}"/></StackPanel>
+          <TextBlock Style="{StaticResource Hint}" Margin="200,0,0,2" Text="主人 QQ 号：多个用英文逗号分隔；拥有全部管理权限。"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="主人的称呼"/><TextBox x:Name="txtOwnerName" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="机器人昵称"/><TextBox x:Name="txtBotNick" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="机器人对主人的称呼"/><TextBox x:Name="txtOwnerTitle" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="机器人对自己的人称"/><TextBox x:Name="txtBotSelfRef" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="机器人的物种 / 定位"/><TextBox x:Name="txtBotSpecies" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="NapCat 反向 WS 地址"/><TextBox x:Name="txtWsUrl" Style="{StaticResource Field}"/></StackPanel>
+
+          <TextBlock Style="{StaticResource Sec}" Text="② 对话大模型（OpenAI 兼容）"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="接口 Base URL"/><TextBox x:Name="txtDsBase" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="模型名"/><TextBox x:Name="txtModel" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="API Key"/><TextBox x:Name="txtDsKey" Style="{StaticResource Field}"/></StackPanel>
+
+          <TextBlock Style="{StaticResource Sec}" Text="③ 可选接口（不需要留空）"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="图像生成 API Key"/><TextBox x:Name="txtT2iKey" Style="{StaticResource Field}"/></StackPanel>
+          <TextBlock Style="{StaticResource Hint}" Margin="200,0,0,2" Text="图像生成：智谱 GLM / CogView 等；填写后自动开启生图。"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="语音识别(ASR) API Key"/><TextBox x:Name="txtAsrKey" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="Bing 图像搜索 API Key"/><TextBox x:Name="txtBingKey" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="虚拟形象 API Key"/><TextBox x:Name="txtAvatarKey" Style="{StaticResource Field}"/></StackPanel>
+          <TextBlock Style="{StaticResource Hint}" Margin="200,0,0,2" Text="虚拟形象：火山方舟 ARK；填写后自动开启虚拟形象生成。"/>
+
+          <TextBlock Style="{StaticResource Sec}" Text="④ 语音合成（TTS）"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="启用语音"/><CheckBox x:Name="chkTts" Style="{StaticResource Chk}" Content="开启（机器人的语音回复）"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="TTS 引擎"/><ComboBox x:Name="cmbTts" Style="{StaticResource Combo}">
+            <ComboBoxItem Content="sapi"/>
+            <ComboBoxItem Content="gptsovits"/>
+            <ComboBoxItem Content="indextts"/>
+            <ComboBoxItem Content="edge"/>
+            <ComboBoxItem Content="glm"/>
+          </ComboBox></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="GPT-SoVITS 服务地址"/><TextBox x:Name="txtSovitsUrl" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="GPT-SoVITS 参考音频"/><TextBox x:Name="txtSovitsRef" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="IndexTTS 服务地址"/><TextBox x:Name="txtIndexUrl" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="IndexTTS 音色名"/><TextBox x:Name="txtIndexVoice" Style="{StaticResource Field}"/></StackPanel>
+
+          <TextBlock Style="{StaticResource Sec}" Text="⑤ AI 视频（可选，不需要留空）"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="启用本机视频合成"/><CheckBox x:Name="chkVideoMake" Style="{StaticResource Chk}" Content="开启（本机 ffmpeg + 语音合成短片）"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="启用 AI 视频生成"/><CheckBox x:Name="chkAivideo" Style="{StaticResource Chk}" Content="开启（让图片动起来）"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="AI 视频服务"/><ComboBox x:Name="cmbAivideoProvider" Style="{StaticResource Combo}">
+            <ComboBoxItem Content="kling"/>
+            <ComboBoxItem Content="seedance"/>
+          </ComboBox></StackPanel>
+          <TextBlock Style="{StaticResource Hint}" Margin="200,0,0,2" Text="kling=可灵（填下方可灵 Access Key）；seedance=火山方舟（填下方方舟 Key）。"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="可灵 Access Key"/><TextBox x:Name="txtKlingAccess" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="可灵 Secret Key"/><TextBox x:Name="txtKlingSecret" Style="{StaticResource Field}"/></StackPanel>
+          <TextBlock Style="{StaticResource Hint}" Margin="200,0,0,2" Text="可灵新版只填 Access Key；旧版 AK/SK 两个都填。"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="可灵模型"/><TextBox x:Name="txtKlingModel" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="可灵模式"/><ComboBox x:Name="cmbKlingMode" Style="{StaticResource Combo}">
+            <ComboBoxItem Content="std"/>
+            <ComboBoxItem Content="pro"/>
+          </ComboBox></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="火山方舟视频 API Key"/><TextBox x:Name="txtAivideoKey" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="火山方舟视频模型名"/><TextBox x:Name="txtAivideoModel" Style="{StaticResource Field}"/></StackPanel>
+          <TextBlock Style="{StaticResource Hint}" Margin="200,0,0,2" Text="火山方舟：填 ARK API Key 与视频模型名（如 doubao-seedance-2-0-fast-260128）。"/>
+
+          <TextBlock Style="{StaticResource Sec}" Text="⑥ 高级与安全（默认关闭）"/>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="PC 控制执行端地址"/><TextBox x:Name="txtExecutorUrl" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="PC 执行端通信秘钥"/><TextBox x:Name="txtExecutorSecret" Style="{StaticResource Field}"/></StackPanel>
+          <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource Lbl}" Text="允许机器人自改代码"/><CheckBox x:Name="chkSelfPatch" Style="{StaticResource Chk}" Content="允许（高风险，仅调试用）"/></StackPanel>
+
+          <Rectangle Height="1" Fill="#1C2740" Margin="0,18,0,0"/>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- footer -->
+      <Grid Grid.Row="2" Background="#0E1626">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock x:Name="txtStatus" Grid.Column="0" Foreground="#6F7D95" FontSize="11.5"
+                   VerticalAlignment="Center" Margin="22,0,10,0" TextWrapping="Wrap" Text="就绪"/>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
+          <Button x:Name="btnCancel" Style="{StaticResource GhostBtn}" Content="取消" Margin="0,0,10,0"/>
+          <Button x:Name="btnSave" Style="{StaticResource PrimaryBtn}" Content="保存并完成"/>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>
